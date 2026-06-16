@@ -70,6 +70,11 @@ source_file = st.file_uploader("Source document", type=["docx", "tex"],
 bib_file = st.file_uploader("BibTeX file (optional)",  type=["bib"],
                               help="Required for citation reformatting. Export from Paperpile or your reference manager")
 
+fmt_options = ["Same as source", "Word (.docx)", "LaTeX (.tex)"]
+fmt_choice = st.selectbox("Output format", fmt_options,
+                           help="LaTeX output keeps citations alive as \\citep{} commands "
+                                "if you supply a BibTeX file")
+
 # ── Conversion ────────────────────────────────────────────────────────────────
 
 ready = source_file is not None and from_idx != to_idx
@@ -93,7 +98,12 @@ if st.button("Convert", type="primary", disabled=not ready):
             bib_path = tmp_path / bib_file.name
             bib_path.write_bytes(bib_file.getvalue())
 
-        suffix = source_path.suffix
+        if fmt_choice == "Word (.docx)":
+            suffix = ".docx"
+        elif fmt_choice == "LaTeX (.tex)":
+            suffix = ".tex"
+        else:
+            suffix = source_path.suffix
         output_name = f"{source_path.stem}_{ids[to_idx]}{suffix}"
         output_path = tmp_path / output_name
 
