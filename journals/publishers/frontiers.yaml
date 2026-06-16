@@ -1,0 +1,12 @@
+name: Frontiers Media
+
+citation:
+  style: frontiers
+  format: author-year
+
+abstract:
+  type: unstructured
+
+template:
+  word: frontiers-template.docx      # download from journal author guidelines page
+  latex_cls: frontiersSCNS.cls       # download from journal author guidelines page; verify license before bundling

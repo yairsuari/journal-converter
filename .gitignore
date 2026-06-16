@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.streamlit/secrets.toml
+
+# Conversion output that may land here during local testing
+*.conversion-report.txt
+media/

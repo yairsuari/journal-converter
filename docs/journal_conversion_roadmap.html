@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal Conversion Tool — Development Roadmap</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background: #f5f4f0;
+      color: #2c2c2c;
+      line-height: 1.7;
+    }
+
+    header {
+      background: #2b4a6f;
+      color: #fff;
+      padding: 48px 40px 36px;
+    }
+
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: normal;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: #b8cfe0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 14px;
+      background: #e8a020;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.75rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 3px;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 32px;
+    }
+
+    /* ── Section headings ── */
+    .section-title {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.75rem;
+      font-weight: bold;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7a8a9a;
+      margin-bottom: 28px;
+    }
+
+    /* ── Timeline ── */
+    .timeline {
+      position: relative;
+      padding-left: 40px;
+      margin-bottom: 60px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 12px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: #c8d4e0;
+    }
+
+    .phase {
+      position: relative;
+      margin-bottom: 36px;
+    }
+
+    .phase:last-child { margin-bottom: 0; }
+
+    .phase-dot {
+      position: absolute;
+      left: -35px;
+      top: 5px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #2b4a6f;
+      border: 3px solid #f5f4f0;
+      outline: 2px solid #2b4a6f;
+    }
+
+    .phase.done .phase-dot {
+      background: #27ae60;
+      outline-color: #27ae60;
+    }
+
+    .phase-card {
+      background: #fff;
+      border: 1px solid #dde3ea;
+      border-radius: 6px;
+      padding: 24px 28px;
+    }
+
+    .phase.done .phase-card {
+      border-color: #a8d5b5;
+      background: #f6fdf8;
+    }
+
+    .phase-done-badge {
+      margin-left: auto;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.68rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #27ae60;
+      background: #e6f7ed;
+      border: 1px solid #a8d5b5;
+      padding: 2px 9px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .phase-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .phase-number {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fff;
+      background: #2b4a6f;
+      padding: 2px 8px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .phase-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #1a2e40;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .phase-card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .phase-card ul li {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.88rem;
+      color: #444;
+      padding: 4px 0 4px 18px;
+      position: relative;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .phase-card ul li:last-child { border-bottom: none; }
+
+    .phase-card ul li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: #e8a020;
+      font-weight: bold;
+    }
+
+    .phase-note {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #f0f5fb;
+      border-left: 3px solid #2b4a6f;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.82rem;
+      color: #3a5a7a;
+    }
+
+    /* ── Open Questions ── */
+    .questions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 620px) {
+      .questions-grid { grid-template-columns: 1fr; }
+    }
+
+    .question-card {
+      background: #fff;
+      border: 1px solid #dde3ea;
+      border-left: 4px solid #c0392b;
+      border-radius: 0 6px 6px 0;
+      padding: 18px 20px;
+    }
+
+    .question-tag {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.68rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c0392b;
+      margin-bottom: 6px;
+    }
+
+    .question-text {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.86rem;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .question-card.resolved {
+      border-left-color: #27ae60;
+    }
+
+    .question-card.resolved .question-tag {
+      color: #27ae60;
+    }
+
+    .resolved-answer {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #f0faf4;
+      border-radius: 3px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.83rem;
+      color: #1a5c30;
+      line-height: 1.5;
+    }
+
+    .resolved-answer strong {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      color: #27ae60;
+    }
+
+    /* ── Tech stack ── */
+    .stack-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.86rem;
+      margin-top: 0;
+    }
+
+    .stack-table th {
+      text-align: left;
+      background: #2b4a6f;
+      color: #fff;
+      padding: 10px 16px;
+      font-weight: normal;
+      letter-spacing: 0.05em;
+    }
+
+    .stack-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #e8ecf0;
+      vertical-align: top;
+    }
+
+    .stack-table tr:last-child td { border-bottom: none; }
+    .stack-table tr:nth-child(even) td { background: #f9f9f7; }
+
+    .stack-table td:first-child {
+      font-weight: bold;
+      color: #1a2e40;
+      white-space: nowrap;
+    }
+
+    code {
+      font-family: 'Courier New', Courier, monospace;
+      background: #eef0f3;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.85em;
+    }
+
+    /* ── Disclaimer ── */
+    .disclaimer {
+      background: #fdf6ec;
+      border: 1px solid #f0d9a8;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-top: 48px;
+    }
+
+    .disclaimer-title {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.78rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #a06020;
+      margin-bottom: 8px;
+    }
+
+    .disclaimer p {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.84rem;
+      color: #5a4010;
+      line-height: 1.6;
+    }
+
+    footer {
+      text-align: center;
+      padding: 28px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.78rem;
+      color: #aaa;
+      border-top: 1px solid #dde3ea;
+      margin-top: 48px;
+    }
+
+    .spacer { margin-bottom: 48px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Journal Conversion Tool</h1>
+  <p>Open-source academic manuscript reformatter — Development Roadmap</p>
+  <div class="badge">Working Document · June 2026</div>
+</header>
+
+<div class="container">
+
+  <!-- ── Roadmap ── -->
+  <p class="section-title">Development Phases</p>
+
+  <div class="timeline">
+
+    <div class="phase done">
+      <div class="phase-dot"></div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-number">Phase 1</span>
+          <span class="phase-title">Core Conversion Engine</span>
+          <span class="phase-done-badge">Complete</span>
+        </div>
+        <ul>
+          <li>Pandoc integration for <code>docx ↔ docx</code>, <code>docx ↔ tex</code>, <code>tex ↔ tex</code></li>
+          <li>Citation extraction from Paperpile-linked Word docs via BibTeX export</li>
+          <li>CSL-based citation reformatting (author-year ↔ numbered ↔ footnote)</li>
+          <li>Reference list rebuilding using target journal's CSL style</li>
+          <li>Basic journal config schema (YAML): citation style, template path, abstract type</li>
+        </ul>
+        <div class="phase-note">
+          First target: convert between the two specific journals that prompted this project.
+          Everything else builds on this working baseline.
+        </div>
+      </div>
+    </div>
+
+    <div class="phase done">
+      <div class="phase-dot"></div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-number">Phase 2</span>
+          <span class="phase-title">Journal Config System</span>
+          <span class="phase-done-badge">Complete</span>
+        </div>
+        <ul>
+          <li>Finalise YAML schema for a journal profile (citation style, Word template, abstract format, structural rules, word limit)</li>
+          <li>Add <code>publisher</code> and <code>last_verified</code> fields to the schema</li>
+          <li>Publisher-level base configs: shared template and rules inherited by all journals under the same publisher (e.g. all Frontiers journals, all Elsevier journals)</li>
+          <li>Journal configs can override publisher defaults for journal-specific rules only</li>
+          <li>Write initial configs for the two seed journals</li>
+          <li>Config validation (missing fields, unresolved CSL names, broken template paths)</li>
+          <li>Establish <code>journals/</code> folder as the community contribution point</li>
+        </ul>
+        <div class="phase-note">
+          Journal configs are the main extension point — adding support for a new journal should require no core code changes.
+        </div>
+      </div>
+    </div>
+
+    <div class="phase done">
+      <div class="phase-dot"></div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-number">Phase 3</span>
+          <span class="phase-title">CLI Interface</span>
+          <span class="phase-done-badge">Complete</span>
+        </div>
+        <ul>
+          <li>Click-based CLI: <code>convert.py source.docx --from journal_a --to journal_b</code></li>
+          <li>Optional <code>--bib</code> flag to supply a separate BibTeX file</li>
+          <li>First-run configuration wizard (locates Pandoc, sets default template directory)</li>
+          <li>Output: converted document + conversion report (what changed, what needs manual review)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase done">
+      <div class="phase-dot"></div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-number">Phase 4</span>
+          <span class="phase-title">Streamlit GUI</span>
+          <span class="phase-done-badge">Complete</span>
+        </div>
+        <ul>
+          <li>File upload: source document + optional <code>.bib</code> file</li>
+          <li>Journal selector dropdown (populated from available configs)</li>
+          <li>Conversion preview / diff before download</li>
+          <li>Download converted document</li>
+          <li>Hosted on Streamlit Community Cloud — no installation required for end users</li>
+        </ul>
+        <div class="phase-note">
+          GUI and CLI are thin wrappers over the same core. Adding the GUI should not require changes to Phase 1–2 code.
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-dot"></div>
+      <div class="phase-card">
+        <div class="phase-header">
+          <span class="phase-number">Phase 5</span>
+          <span class="phase-title">Community &amp; Distribution</span>
+        </div>
+        <ul>
+          <li>GitHub repository with MIT license</li>
+          <li>Structured issue template for bug reports (source journal, target journal, conversion type, what broke, anonymised example)</li>
+          <li>GitHub Discussions for journal pair requests and feature discussion</li>
+          <li>Contributing guide: how to add a new journal config via pull request</li>
+          <li>README with supported journals table and quick-start instructions</li>
+          <li>Disclaimer (see below)</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+  <!-- ── Resolved Decisions ── -->
+  <p class="section-title">Resolved Decisions</p>
+
+  <div class="questions-grid spacer">
+
+    <div class="question-card resolved">
+      <div class="question-tag">Hosting</div>
+      <div class="question-text">
+        Streamlit Community Cloud (free, zero-friction) vs. self-hosted?
+        Community Cloud has branding and resource limits; self-hosting gives control but adds maintenance burden.
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        Streamlit Community Cloud. Zero installation for end users — share a URL, done.
+        Acceptable trade-off at this stage; can migrate to self-hosted later if scale demands it.
+      </div>
+    </div>
+
+    <div class="question-card resolved">
+      <div class="question-tag">Structural Differences</div>
+      <div class="question-text">
+        How to handle journals with structural divergence: structured vs. unstructured abstract,
+        figures at end of document, highlights section, graphical abstract?
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        Structural rules are declared in each journal's YAML config. If a required transformation
+        has no config entry, the tool flags it clearly as unsupported rather than silently producing
+        wrong output. For unsupported pairs, the tool will suggest a step-by-step workflow for
+        creating or extending a journal YAML — making it a community contribution opportunity
+        rather than a dead end.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Open Questions ── -->
+  <p class="section-title">Open Questions</p>
+
+  <div class="questions-grid spacer">
+
+    <div class="question-card resolved">
+      <div class="question-tag">Privacy</div>
+      <div class="question-text">
+        How should users anonymise sample manuscripts when submitting bug reports?
+        Need clear guidance — a checklist or a strip-metadata script — to protect authors and avoid IP issues.
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        No stripping scripts or tooling. Anonymity guidance is included directly in the bug report
+        template: replace author names with placeholders, attach only the relevant excerpt (not the
+        full manuscript), and redact any unpublished references. Responsibility sits with the user;
+        the disclaimer reinforces this.
+      </div>
+    </div>
+
+    <div class="question-card resolved">
+      <div class="question-tag">CSL Versioning</div>
+      <div class="question-text">
+        Pin CSL files to a specific version in the repo, or pull from the CSL registry at runtime?
+        Pinning is reproducible but can go stale; live fetching stays current but breaks offline use.
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        Both: attempt to fetch the latest CSL file from the registry at runtime. If the fetch
+        fails (offline, registry unavailable), fall back to the pinned version bundled in the repo
+        and notify the user. If no pinned version exists either, prompt the user to supply the
+        CSL file manually.
+      </div>
+    </div>
+
+    <div class="question-card resolved">
+      <div class="question-tag">Plain-text Citations</div>
+      <div class="question-text">
+        Manuscripts with no reference manager (citations typed as plain text) cannot be
+        automatically reformatted. Out of scope for v1, or best-effort detection with a warning?
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        Out of scope for v1. The tool will detect the likely absence of structured citations and
+        show a clear warning. If the user supplies a <code>.bib</code> file separately, the tool
+        will attempt a best-effort match — no guarantees, but it won't silently fail.
+      </div>
+    </div>
+
+    <div class="question-card resolved">
+      <div class="question-tag">LaTeX Templates</div>
+      <div class="question-text">
+        Journal <code>.cls</code> files: bundle in repo (licensing risk?) or require the user to
+        supply them? Many journals distribute their own class files freely but retain copyright.
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        Check the license declared in the <code>.cls</code> file header. Files with LPPL, MIT, or
+        equivalent permissive licenses are bundled in the repo. Files with no license or a
+        restrictive one are not bundled — the tool prompts the user to place the journal's
+        <code>.cls</code> file in the expected folder.
+      </div>
+    </div>
+
+    <div class="question-card resolved">
+      <div class="question-tag">Config Versioning</div>
+      <div class="question-text">
+        Journal submission guidelines change. Should configs carry a version/date field
+        so users know when a config was last verified against the journal's current requirements?
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        Configs carry a <code>last_verified</code> date field so users can judge staleness.
+        Configs also declare a <code>publisher</code> field — many publishers (e.g. Elsevier,
+        Frontiers, Wiley) apply near-identical templates across journals, enabling config reuse
+        and cross-journal consistency checks.
+      </div>
+    </div>
+
+    <div class="question-card resolved">
+      <div class="question-tag">Bug Report Location</div>
+      <div class="question-text">
+        GitHub Issues is the natural fit, but some academics are not comfortable with GitHub.
+        Worth adding a fallback (Google Form that creates an issue automatically)?
+      </div>
+      <div class="resolved-answer">
+        <strong>Decision</strong>
+        GitHub Issues as the primary channel. A Google Form is provided as a no-account fallback —
+        submissions are forwarded to the maintainer who files the issue. Lowers the barrier for
+        academics unfamiliar with GitHub.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Tech Stack ── -->
+  <p class="section-title">Planned Technology Stack</p>
+
+  <table class="stack-table spacer">
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Technology</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Document conversion</td>
+        <td>Pandoc</td>
+        <td>Backbone for all format conversions; handles internal document model</td>
+      </tr>
+      <tr>
+        <td>Python bindings</td>
+        <td>pypandoc, python-docx</td>
+        <td>Drive Pandoc from Python; inspect/modify Word document structure</td>
+      </tr>
+      <tr>
+        <td>Citation processing</td>
+        <td>Pandoc citeproc + CSL files</td>
+        <td>Reformat inline citations and reference lists to any target style</td>
+      </tr>
+      <tr>
+        <td>Citation source</td>
+        <td>BibTeX (exported from Paperpile)</td>
+        <td>Structured metadata for all references; feeds citeproc</td>
+      </tr>
+      <tr>
+        <td>Journal configs</td>
+        <td>YAML</td>
+        <td>Per-journal profiles; community-contributed via pull requests</td>
+      </tr>
+      <tr>
+        <td>CLI</td>
+        <td>Click</td>
+        <td>Command-line interface and first-run wizard</td>
+      </tr>
+      <tr>
+        <td>GUI</td>
+        <td>Streamlit</td>
+        <td>Browser-based interface; hostable on Streamlit Community Cloud</td>
+      </tr>
+      <tr>
+        <td>License</td>
+        <td>MIT</td>
+        <td>Permissive; compatible with all planned dependencies</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ── Disclaimer ── -->
+  <div class="disclaimer">
+    <div class="disclaimer-title">Planned Disclaimer (draft)</div>
+    <p>
+      This tool performs automated reformatting and does not guarantee compliance with a journal's
+      current submission requirements. Output must be reviewed manually before submission.
+      The maintainers accept no responsibility for manuscripts rejected due to formatting issues.
+      Supported journal configurations are community-maintained and may not reflect the most recent
+      author guidelines. Always verify against the target journal's current instructions for authors.
+    </p>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  Journal Conversion Tool — Internal Roadmap · Last updated June 2026
+</footer>
+
+</body>
+</html>

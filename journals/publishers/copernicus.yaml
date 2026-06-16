@@ -1,0 +1,11 @@
+name: Copernicus Publications
+
+citation:
+  style: copernicus-publications
+  format: author-year
+
+abstract:
+  type: unstructured
+
+template:
+  latex_cls: copernicus2.cls  # LPPL license — can be bundled
