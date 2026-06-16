@@ -5,6 +5,12 @@ new journal should never require touching the core conversion code — it's just
 
 ## Adding a new journal
 
+**Fastest path:** run `python add_journal.py` and answer the prompts — it writes the YAML,
+runs the validator, and tells you what (if anything) is missing. The CLI also triggers this
+automatically if you run a conversion with `--to <unknown-journal-id>`.
+
+To do it by hand instead:
+
 1. Create `journals/<journal-id>.yaml`. Use a short, lowercase, hyphenated ID (e.g.
    `journal-of-hydrology.yaml`).
 

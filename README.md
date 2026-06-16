@@ -15,8 +15,16 @@ Works on `.docx` and `.tex` manuscripts, plus supplementary material, and is bui
 | Hydrology and Earth System Sciences (HESS) | Copernicus | author-year | 2026-06-11 |
 | Frontiers in Marine Science | Frontiers | author-year | 2026-06-11 |
 
-Don't see your target journal? See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add one —
-it's just a YAML file.
+Don't see your target journal? Run the interactive wizard to add it — no need to write YAML
+by hand:
+
+```
+python add_journal.py
+```
+
+(The CLI also offers to run this automatically if you pass `--to` a journal it doesn't
+recognize.) See [CONTRIBUTING.md](CONTRIBUTING.md) for the full schema and how to contribute
+your new config back.
 
 ## Install
 

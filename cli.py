@@ -35,7 +35,16 @@ def main(source: Path, from_journal: str, to_journal: str,
     """Convert an academic manuscript from one journal format to another."""
     _check_pandoc()
 
-    target_config = JournalConfig.load(to_journal, JOURNALS_DIR)
+    try:
+        target_config = JournalConfig.load(to_journal, JOURNALS_DIR)
+    except FileNotFoundError:
+        click.echo(f"No config found for journal '{to_journal}'.")
+        if not click.confirm("Create one now?", default=True):
+            sys.exit(1)
+        from converter.wizard import run_wizard
+        new_path = run_wizard(JOURNALS_DIR, suggested_id=to_journal)
+        target_config = JournalConfig.load(new_path.stem, JOURNALS_DIR)
+        to_journal = new_path.stem
 
     issues = validate(target_config)
     if issues:
