@@ -9,6 +9,7 @@ Two strategies, tried in order:
    in the .bib file.  Used as a fallback when no Paperpile map is available or a
    citation wasn't found in the map.
 """
+from __future__ import annotations
 import re
 from pathlib import Path
 
