@@ -11,3 +11,8 @@ template:
   word: copernicus-template.docx
   latex_cls: copernicus.cls
   pandoc_template: copernicus-pandoc.tex
+  word_cut_at_style: "MStitle"
+  word_style_map:
+    "1": "Heading1"
+    "2": "Heading2"
+    "3": "Heading3"

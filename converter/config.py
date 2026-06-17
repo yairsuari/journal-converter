@@ -22,6 +22,8 @@ class TemplateConfig:
     word: Optional[str] = None
     latex_cls: Optional[str] = None
     pandoc_template: Optional[str] = None  # full Pandoc .tex template; overrides latex_cls preamble
+    word_cut_at_style: Optional[str] = None   # template body cut point for direct injection
+    word_style_map: dict = field(default_factory=dict)  # {source_style: target_style}
 
 
 @dataclass
@@ -69,6 +71,8 @@ class JournalConfig:
                 word=template_raw.get("word"),
                 latex_cls=template_raw.get("latex_cls"),
                 pandoc_template=template_raw.get("pandoc_template"),
+                word_cut_at_style=template_raw.get("word_cut_at_style"),
+                word_style_map=template_raw.get("word_style_map") or {},
             ),
             last_verified=data.get("last_verified"),
             word_limit=data.get("word_limit"),

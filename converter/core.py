@@ -148,117 +148,153 @@ def convert(
         from .paperpile import extract_field_map
         pp_field_map = extract_field_map(source)
 
-    if bib is None:
-        msg = (
-            "No .bib file supplied — citation reformatting skipped. "
-            "Provide a BibTeX file with --bib to reformat citations."
-        )
-        if suffix == ".tex":
-            msg = (
-                "No .bib file supplied — citations will be rendered as plain text. "
-                "For LaTeX output, always provide --bib so citations stay as \\cite{} commands."
-            )
-        warnings.append(msg)
+    templates_dir = Path(__file__).parent.parent / "templates"
 
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
-        out_tmp  = tmp_path / output.name
+    # Direct template injection path: start from a copy of the template and inject
+    # source paragraphs/tables/images directly, preserving logos and template layout.
+    _word_template_path = (
+        templates_dir / target_journal.template.word
+        if target_journal.template.word else None
+    )
+    _use_injection = (
+        suffix == ".docx"
+        and source.suffix.lower() == ".docx"
+        and _word_template_path is not None
+        and _word_template_path.exists()
+    )
 
-        cmd = [pandoc, str(source), "-o", str(out_tmp)]
-
-        if suffix == ".tex":
-            cmd += ["--standalone", "--extract-media", "."]
-            if bib is not None:
-                # --natbib keeps citations as \citep{}/\citet{}; do NOT pass --bibliography
-                # here — Pandoc would write the full path into \bibliography{}, mangling
-                # backslashes on Windows. cite_revive adds \bibliography{stem} instead.
-                cmd += ["--natbib"]
-
-            templates_dir = Path(__file__).parent.parent / "templates"
-
-            # Full Pandoc template takes priority — gives complete control over preamble
-            if target_journal.template.pandoc_template:
-                tmpl_path = templates_dir / target_journal.template.pandoc_template
-                if tmpl_path.exists():
-                    cmd += ["--template", str(tmpl_path)]
-                    if target_journal.latex_journal_abbrev:
-                        cmd += ["-V", f"journal-abbrev={target_journal.latex_journal_abbrev}"]
-                    # Copy cls + all companion files into the working dir
-                    if target_journal.template.latex_cls:
-                        cls_path = templates_dir / target_journal.template.latex_cls
-                        if cls_path.exists():
-                            for f in templates_dir.iterdir():
-                                if f.suffix in (".cls", ".bst", ".cfg", ".sty", ".pdf") and f.is_file():
-                                    shutil.copy(f, tmp_path / f.name)
-                        else:
-                            warnings.append(
-                                f"LaTeX class '{target_journal.template.latex_cls}' not found in templates/ — "
-                                "the Pandoc template references it; download it from the journal's author "
-                                "guidelines page and place it in templates/."
-                            )
-                else:
-                    warnings.append(
-                        f"Pandoc template '{target_journal.template.pandoc_template}' not found in templates/ — "
-                        "using default Pandoc preamble."
-                    )
-                    # Fall back to cls-only if template missing
-                    if target_journal.template.latex_cls:
-                        cls_path = templates_dir / target_journal.template.latex_cls
-                        if cls_path.exists():
-                            shutil.copy(cls_path, tmp_path / target_journal.template.latex_cls)
-                            cmd += ["-V", f"documentclass={cls_path.stem}"]
-
-            # No Pandoc template — just override the document class
-            elif target_journal.template.latex_cls:
-                cls_path = templates_dir / target_journal.template.latex_cls
-                if cls_path.exists():
-                    shutil.copy(cls_path, tmp_path / target_journal.template.latex_cls)
-                    cmd += ["-V", f"documentclass={cls_path.stem}"]
-                else:
-                    warnings.append(
-                        f"LaTeX class '{target_journal.template.latex_cls}' not found in templates/ — "
-                        "using default article class. Download it from the journal's author guidelines page "
-                        f"and place it in templates/."
-                    )
-
-        else:
-            if bib is not None:
-                csl_path = get_csl(target_journal.citation.style)
-                cmd += ["--bibliography", str(bib), "--citeproc", "--csl", str(csl_path)]
-
-            if suffix == ".docx" and target_journal.template.word:
-                template_path = Path(__file__).parent.parent / "templates" / target_journal.template.word
-                if template_path.exists():
-                    cmd += ["--reference-doc", str(template_path)]
-                else:
-                    warnings.append(
-                        f"Word template '{target_journal.template.word}' not found in templates/ — "
-                        "using default Pandoc styling."
-                    )
-
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(tmp_path))
-        if result.returncode != 0:
-            raise RuntimeError(f"Pandoc conversion failed:\n{result.stderr}")
-
-        output.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(out_tmp, output)
-
-        # Copy extracted media into a per-document subfolder to avoid collisions
-        # when main + supplementary share the same output directory.
-        media_tmp = tmp_path / "media"
-        if media_tmp.exists():
-            media_dest = output.parent / "media" / output.stem
-            if media_dest.exists():
-                shutil.rmtree(media_dest)
-            shutil.copytree(media_tmp, media_dest)
-            if suffix == ".tex":
-                tex = output.read_text(encoding="utf-8")
-                tex = re.sub(r'\./media/', f'./media/{output.stem}/', tex)
-                output.write_text(tex, encoding="utf-8")
+    if _use_injection:
+        if bib is not None:
             warnings.append(
-                f"Figures extracted to media/{output.stem}/ — "
-                "replace with high-resolution originals before submission."
+                "BibTeX file supplied but citation reformatting (citeproc) is not applied "
+                "in the direct Word injection path — Paperpile citation fields are preserved "
+                "intact from the source. Refresh fields in Word (Ctrl+A, then F9) after opening."
             )
+        else:
+            warnings.append(
+                "No .bib file supplied — citation reformatting skipped."
+            )
+
+        from .docx_builder import build_docx
+        output.parent.mkdir(parents=True, exist_ok=True)
+        builder_warnings = build_docx(
+            source=source,
+            template=_word_template_path,
+            output=output,
+            style_map=target_journal.template.word_style_map,
+            cut_at_style=target_journal.template.word_cut_at_style,
+        )
+        warnings.extend(builder_warnings)
+
+    else:
+        if bib is None:
+            msg = (
+                "No .bib file supplied — citation reformatting skipped. "
+                "Provide a BibTeX file with --bib to reformat citations."
+            )
+            if suffix == ".tex":
+                msg = (
+                    "No .bib file supplied — citations will be rendered as plain text. "
+                    "For LaTeX output, always provide --bib so citations stay as \\cite{} commands."
+                )
+            warnings.append(msg)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            out_tmp  = tmp_path / output.name
+
+            cmd = [pandoc, str(source), "-o", str(out_tmp)]
+
+            if suffix == ".tex":
+                cmd += ["--standalone", "--extract-media", "."]
+                if bib is not None:
+                    # --natbib keeps citations as \citep{}/\citet{}; do NOT pass --bibliography
+                    # here — Pandoc would write the full path into \bibliography{}, mangling
+                    # backslashes on Windows. cite_revive adds \bibliography{stem} instead.
+                    cmd += ["--natbib"]
+
+                # Full Pandoc template takes priority — gives complete control over preamble
+                if target_journal.template.pandoc_template:
+                    tmpl_path = templates_dir / target_journal.template.pandoc_template
+                    if tmpl_path.exists():
+                        cmd += ["--template", str(tmpl_path)]
+                        if target_journal.latex_journal_abbrev:
+                            cmd += ["-V", f"journal-abbrev={target_journal.latex_journal_abbrev}"]
+                        # Copy cls + all companion files into the working dir
+                        if target_journal.template.latex_cls:
+                            cls_path = templates_dir / target_journal.template.latex_cls
+                            if cls_path.exists():
+                                for f in templates_dir.iterdir():
+                                    if f.suffix in (".cls", ".bst", ".cfg", ".sty", ".pdf") and f.is_file():
+                                        shutil.copy(f, tmp_path / f.name)
+                            else:
+                                warnings.append(
+                                    f"LaTeX class '{target_journal.template.latex_cls}' not found in templates/ — "
+                                    "the Pandoc template references it; download it from the journal's author "
+                                    "guidelines page and place it in templates/."
+                                )
+                    else:
+                        warnings.append(
+                            f"Pandoc template '{target_journal.template.pandoc_template}' not found in templates/ — "
+                            "using default Pandoc preamble."
+                        )
+                        # Fall back to cls-only if template missing
+                        if target_journal.template.latex_cls:
+                            cls_path = templates_dir / target_journal.template.latex_cls
+                            if cls_path.exists():
+                                shutil.copy(cls_path, tmp_path / target_journal.template.latex_cls)
+                                cmd += ["-V", f"documentclass={cls_path.stem}"]
+
+                # No Pandoc template — just override the document class
+                elif target_journal.template.latex_cls:
+                    cls_path = templates_dir / target_journal.template.latex_cls
+                    if cls_path.exists():
+                        shutil.copy(cls_path, tmp_path / target_journal.template.latex_cls)
+                        cmd += ["-V", f"documentclass={cls_path.stem}"]
+                    else:
+                        warnings.append(
+                            f"LaTeX class '{target_journal.template.latex_cls}' not found in templates/ — "
+                            "using default article class. Download it from the journal's author guidelines page "
+                            f"and place it in templates/."
+                        )
+
+            else:
+                if bib is not None:
+                    csl_path = get_csl(target_journal.citation.style)
+                    cmd += ["--bibliography", str(bib), "--citeproc", "--csl", str(csl_path)]
+
+                if suffix == ".docx" and target_journal.template.word:
+                    if _word_template_path and _word_template_path.exists():
+                        cmd += ["--reference-doc", str(_word_template_path)]
+                    else:
+                        warnings.append(
+                            f"Word template '{target_journal.template.word}' not found in templates/ — "
+                            "using default Pandoc styling."
+                        )
+
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(tmp_path))
+            if result.returncode != 0:
+                raise RuntimeError(f"Pandoc conversion failed:\n{result.stderr}")
+
+            output.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(out_tmp, output)
+
+            # Copy extracted media into a per-document subfolder to avoid collisions
+            # when main + supplementary share the same output directory.
+            media_tmp = tmp_path / "media"
+            if media_tmp.exists():
+                media_dest = output.parent / "media" / output.stem
+                if media_dest.exists():
+                    shutil.rmtree(media_dest)
+                shutil.copytree(media_tmp, media_dest)
+                if suffix == ".tex":
+                    tex = output.read_text(encoding="utf-8")
+                    tex = re.sub(r'\./media/', f'./media/{output.stem}/', tex)
+                    output.write_text(tex, encoding="utf-8")
+                warnings.append(
+                    f"Figures extracted to media/{output.stem}/ — "
+                    "replace with high-resolution originals before submission."
+                )
 
     if suffix == ".tex":
         _ensure_utf8_inputenc(output)

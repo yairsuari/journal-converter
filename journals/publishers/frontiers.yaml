@@ -11,3 +11,8 @@ template:
   word: frontiers-template.docx      # download from journal author guidelines page
   latex_cls: FrontiersinHarvard.cls  # included (from Frontiers LaTeX template package)
   pandoc_template: frontiers-pandoc.tex
+  word_cut_at_style: "Heading1"
+  word_style_map:
+    "1": "Heading1"
+    "2": "Heading2"
+    "3": "Heading3"
