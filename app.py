@@ -8,6 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from converter import convert, count_words, JournalConfig, validate
+from converter.wizard import load_publisher_data, slugify, write_journal_config
 
 JOURNALS_DIR = Path(__file__).parent / "journals"
 
@@ -62,6 +63,70 @@ with col2:
 
 if from_idx == to_idx:
     st.warning("Source and target journals are the same — nothing to convert.")
+
+# ── Add a new journal ────────────────────────────────────────────────────────
+
+with st.expander("➕ Don't see your journal? Add it here"):
+    new_name = st.text_input("Journal name", key="nj_name")
+    new_id = st.text_input("Journal ID (short, lowercase, used internally)",
+                            value=slugify(new_name) if new_name else "", key="nj_id")
+
+    publishers_dir = JOURNALS_DIR / "publishers"
+    available_publishers = sorted(p.stem for p in publishers_dir.glob("*.yaml")) if publishers_dir.exists() else []
+    publisher_choice = st.selectbox("Publisher", ["None / not listed"] + available_publishers, key="nj_publisher")
+    new_publisher = None if publisher_choice == "None / not listed" else publisher_choice
+    pub_data = load_publisher_data(JOURNALS_DIR, new_publisher)
+
+    new_style = new_format = None
+    if "citation" not in pub_data:
+        st.caption("Find the CSL filename at "
+                   "[citation-style-language/styles](https://github.com/citation-style-language/styles)")
+        new_style = st.text_input("CSL style name (without .csl)", key="nj_style")
+        new_format = st.selectbox("Citation format", ["author-year", "numeric", "footnote"], key="nj_format")
+
+    new_abstract_type = None
+    new_headings: list[str] = []
+    if "abstract" not in pub_data:
+        new_abstract_type = st.selectbox("Abstract type", ["unstructured", "structured"], key="nj_abstype")
+        if new_abstract_type == "structured":
+            headings_raw = st.text_input("Structured abstract headings (comma-separated)", key="nj_headings")
+            new_headings = [h.strip() for h in headings_raw.split(",") if h.strip()]
+
+    has_word_limit = st.checkbox("Has a word limit", key="nj_haswl")
+    new_word_limit = st.number_input("Word limit", min_value=0, step=500, value=8000,
+                                      key="nj_wl") if has_word_limit else None
+
+    new_template_word = new_template_cls = None
+    if "template" not in pub_data:
+        new_template_word = st.text_input("Word reference .docx filename (optional, place file in templates/)",
+                                           key="nj_tword") or None
+        new_template_cls = st.text_input("LaTeX .cls filename (optional, place file in templates/)",
+                                          key="nj_tcls") or None
+
+    if st.button("Save journal config"):
+        if not new_name or not new_id:
+            st.error("Journal name and ID are required.")
+        elif not new_publisher and not new_style:
+            st.error("Citation style is required when no publisher is selected.")
+        else:
+            try:
+                new_path = write_journal_config(
+                    JOURNALS_DIR, name=new_name, journal_id=new_id, publisher=new_publisher,
+                    citation_style=new_style, citation_format=new_format,
+                    abstract_type=new_abstract_type, abstract_headings=new_headings,
+                    word_limit=int(new_word_limit) if new_word_limit else None,
+                    template_word=new_template_word, template_latex_cls=new_template_cls,
+                )
+                new_config = JournalConfig.load(new_path.stem, JOURNALS_DIR)
+                config_issues = validate(new_config)
+                st.success(f"Saved {new_path.name} — it now appears in the journal dropdowns above.")
+                for issue in config_issues:
+                    st.warning(issue)
+                st.info("Consider contributing this back via a pull request — see CONTRIBUTING.md.")
+                _load_journals.clear()
+                st.rerun()
+            except FileExistsError:
+                st.error(f"A config for '{slugify(new_id)}' already exists.")
 
 # ── File uploaders ────────────────────────────────────────────────────────────
 
