@@ -9,4 +9,5 @@ abstract:
 
 template:
   word: frontiers-template.docx      # download from journal author guidelines page
-  latex_cls: frontiersSCNS.cls       # download from journal author guidelines page; verify license before bundling
+  latex_cls: FrontiersinHarvard.cls  # included (from Frontiers LaTeX template package)
+  pandoc_template: frontiers-pandoc.tex

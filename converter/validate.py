@@ -37,6 +37,12 @@ def validate(config: JournalConfig) -> list[str]:
                 "download it from the journal website and place it there"
             )
 
+    if config.template.pandoc_template:
+        if not (_TEMPLATES_DIR / config.template.pandoc_template).exists():
+            issues.append(
+                f"Pandoc template '{config.template.pandoc_template}' not found in templates/"
+            )
+
     if config.template.latex_cls:
         if not (_TEMPLATES_DIR / config.template.latex_cls).exists():
             issues.append(

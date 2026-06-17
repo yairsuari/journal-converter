@@ -8,4 +8,6 @@ abstract:
   type: unstructured
 
 template:
-  latex_cls: copernicus2.cls  # LPPL license — can be bundled
+  word: copernicus-template.docx
+  latex_cls: copernicus.cls
+  pandoc_template: copernicus-pandoc.tex

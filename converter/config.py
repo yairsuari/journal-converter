@@ -21,6 +21,7 @@ class AbstractConfig:
 class TemplateConfig:
     word: Optional[str] = None
     latex_cls: Optional[str] = None
+    pandoc_template: Optional[str] = None  # full Pandoc .tex template; overrides latex_cls preamble
 
 
 @dataclass
@@ -32,6 +33,7 @@ class JournalConfig:
     template: TemplateConfig
     last_verified: Optional[str] = None
     word_limit: Optional[int] = None
+    latex_journal_abbrev: Optional[str] = None  # e.g. "hess" for Copernicus class option
 
     @classmethod
     def load(cls, journal_id: str, journals_dir: Path) -> JournalConfig:
@@ -66,9 +68,11 @@ class JournalConfig:
             template=TemplateConfig(
                 word=template_raw.get("word"),
                 latex_cls=template_raw.get("latex_cls"),
+                pandoc_template=template_raw.get("pandoc_template"),
             ),
             last_verified=data.get("last_verified"),
             word_limit=data.get("word_limit"),
+            latex_journal_abbrev=data.get("latex_journal_abbrev"),
         )
 
 

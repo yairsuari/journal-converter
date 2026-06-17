@@ -173,8 +173,44 @@ def convert(
                 # here — Pandoc would write the full path into \bibliography{}, mangling
                 # backslashes on Windows. cite_revive adds \bibliography{stem} instead.
                 cmd += ["--natbib"]
-            if target_journal.template.latex_cls:
-                cls_path = Path(__file__).parent.parent / "templates" / target_journal.template.latex_cls
+
+            templates_dir = Path(__file__).parent.parent / "templates"
+
+            # Full Pandoc template takes priority — gives complete control over preamble
+            if target_journal.template.pandoc_template:
+                tmpl_path = templates_dir / target_journal.template.pandoc_template
+                if tmpl_path.exists():
+                    cmd += ["--template", str(tmpl_path)]
+                    if target_journal.latex_journal_abbrev:
+                        cmd += ["-V", f"journal-abbrev={target_journal.latex_journal_abbrev}"]
+                    # Copy cls + all companion files into the working dir
+                    if target_journal.template.latex_cls:
+                        cls_path = templates_dir / target_journal.template.latex_cls
+                        if cls_path.exists():
+                            for f in templates_dir.iterdir():
+                                if f.suffix in (".cls", ".bst", ".cfg", ".sty", ".pdf") and f.is_file():
+                                    shutil.copy(f, tmp_path / f.name)
+                        else:
+                            warnings.append(
+                                f"LaTeX class '{target_journal.template.latex_cls}' not found in templates/ — "
+                                "the Pandoc template references it; download it from the journal's author "
+                                "guidelines page and place it in templates/."
+                            )
+                else:
+                    warnings.append(
+                        f"Pandoc template '{target_journal.template.pandoc_template}' not found in templates/ — "
+                        "using default Pandoc preamble."
+                    )
+                    # Fall back to cls-only if template missing
+                    if target_journal.template.latex_cls:
+                        cls_path = templates_dir / target_journal.template.latex_cls
+                        if cls_path.exists():
+                            shutil.copy(cls_path, tmp_path / target_journal.template.latex_cls)
+                            cmd += ["-V", f"documentclass={cls_path.stem}"]
+
+            # No Pandoc template — just override the document class
+            elif target_journal.template.latex_cls:
+                cls_path = templates_dir / target_journal.template.latex_cls
                 if cls_path.exists():
                     shutil.copy(cls_path, tmp_path / target_journal.template.latex_cls)
                     cmd += ["-V", f"documentclass={cls_path.stem}"]

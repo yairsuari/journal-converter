@@ -175,7 +175,7 @@ if st.button("Convert", type="primary", disabled=not ready):
     config_issues = validate(target_config)
     if config_issues:
         for issue in config_issues:
-            if out_suffix != ".tex" and "LaTeX class" in issue:
+            if out_suffix != ".tex" and ("LaTeX class" in issue or "Pandoc template" in issue):
                 continue  # LaTeX template warnings are irrelevant for DOCX output
             st.warning(f"Config note: {issue}")
 
