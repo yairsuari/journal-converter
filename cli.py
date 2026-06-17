@@ -26,7 +26,7 @@ JOURNALS_DIR = Path(__file__).parent / "journals"
               help="Output format (default: same as source)")
 @click.option("--preserve-citations/--no-preserve-citations", default=False,
               help="Re-inject live Paperpile citation fields into the output .docx "
-                   "(only applies to .docx → .docx conversions)")
+                   "(only applies to .docx -> .docx conversions)")
 @click.option("--output-dir", type=click.Path(path_type=Path), default=None,
               help="Directory for output files (default: same folder as source)")
 @click.option("--output", "-o", type=click.Path(path_type=Path), default=None,

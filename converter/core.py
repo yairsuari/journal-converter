@@ -252,7 +252,7 @@ def convert(
         if n_injected > 0:
             warnings.append(
                 f"Re-injected {n_injected} Paperpile citation field(s) — "
-                "citations are live in Word. Refresh fields (Ctrl+A → F9) after opening."
+                "citations are live in Word. Refresh fields (Ctrl+A, then F9) after opening."
             )
         else:
             warnings.append(

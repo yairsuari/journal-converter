@@ -164,9 +164,19 @@ if st.button("Convert", type="primary", disabled=not ready):
 
     target_config = JournalConfig.load(ids[to_idx], JOURNALS_DIR)
 
+    # Determine output suffix before validate() so we can suppress format-irrelevant warnings
+    if fmt_choice == "Word (.docx)":
+        out_suffix = ".docx"
+    elif fmt_choice == "LaTeX (.tex)":
+        out_suffix = ".tex"
+    else:
+        out_suffix = Path(source_file.name).suffix
+
     config_issues = validate(target_config)
     if config_issues:
         for issue in config_issues:
+            if out_suffix != ".tex" and "LaTeX class" in issue:
+                continue  # LaTeX template warnings are irrelevant for DOCX output
             st.warning(f"Config note: {issue}")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -180,12 +190,7 @@ if st.button("Convert", type="primary", disabled=not ready):
             bib_path = tmp_path / bib_file.name
             bib_path.write_bytes(bib_file.getvalue())
 
-        if fmt_choice == "Word (.docx)":
-            suffix = ".docx"
-        elif fmt_choice == "LaTeX (.tex)":
-            suffix = ".tex"
-        else:
-            suffix = source_path.suffix
+        suffix = out_suffix
         output_name = f"{source_path.stem}_{ids[to_idx]}{suffix}"
         output_path = tmp_path / output_name
 
