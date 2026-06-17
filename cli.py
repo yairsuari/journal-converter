@@ -24,14 +24,17 @@ JOURNALS_DIR = Path(__file__).parent / "journals"
               help="Encoding of the .bib file (e.g. utf-8, cp1255). Auto-falls back to cp1255 on error.")
 @click.option("--format", "fmt", type=click.Choice(["docx", "tex"]), default=None,
               help="Output format (default: same as source)")
+@click.option("--preserve-citations/--no-preserve-citations", default=False,
+              help="Re-inject live Paperpile citation fields into the output .docx "
+                   "(only applies to .docx → .docx conversions)")
 @click.option("--output-dir", type=click.Path(path_type=Path), default=None,
               help="Directory for output files (default: same folder as source)")
 @click.option("--output", "-o", type=click.Path(path_type=Path), default=None,
               help="Output path for main document (default: <source>_<to-journal><ext>)")
 def main(source: Path, from_journal: str, to_journal: str,
          bib: Path | None, supplementary: Path | None,
-         bib_encoding: str, fmt: str | None, output_dir: Path | None,
-         output: Path | None):
+         bib_encoding: str, fmt: str | None, preserve_citations: bool,
+         output_dir: Path | None, output: Path | None):
     """Convert an academic manuscript from one journal format to another."""
     _check_pandoc()
 
@@ -66,17 +69,21 @@ def main(source: Path, from_journal: str, to_journal: str,
     click.echo(f"To          : {target_config.name}")
     if bib:
         click.echo(f"BibTeX      : {bib.name}")
+    if preserve_citations:
+        click.echo(f"Citations   : preserve Paperpile fields")
     if supplementary:
         click.echo(f"Supplementary: {supplementary.name}")
     click.echo()
 
-    warnings = convert(source, target_config, output, bib=bib, bib_encoding=bib_encoding)
+    warnings = convert(source, target_config, output, bib=bib, bib_encoding=bib_encoding,
+                       preserve_citations=preserve_citations)
 
     supp_warnings: list[str] = []
     if supplementary:
         supp_output = output.parent / f"{supplementary.stem}_{to_journal}{output.suffix}"
         supp_warnings = convert(supplementary, target_config, supp_output,
-                                bib=bib, bib_encoding=bib_encoding)
+                                bib=bib, bib_encoding=bib_encoding,
+                                preserve_citations=preserve_citations)
         click.echo(f"Supplementary : {supp_output}")
 
     report_path = _write_report(output, from_journal, target_config,

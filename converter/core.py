@@ -124,10 +124,14 @@ def convert(
     output: Path,
     bib: Optional[Path] = None,
     bib_encoding: str = "utf-8",
+    preserve_citations: bool = False,
 ) -> list[str]:
     """
     Convert source document to target journal format.
     Returns a list of warnings for the user to review.
+
+    preserve_citations: when True and both source and output are .docx, re-inject
+    live Paperpile ADDIN field codes that Pandoc discards during conversion.
     """
     warnings: list[str] = []
 
@@ -136,6 +140,13 @@ def convert(
     suffix = output.suffix.lower()
     if suffix not in (".docx", ".tex", ".pdf"):
         raise ValueError(f"Unsupported output format: {suffix}")
+
+    # Pre-extract Paperpile field map before Pandoc discards the field codes.
+    # Used for DOCX→DOCX citation injection and DOCX→LaTeX \citep{} revival.
+    pp_field_map: dict = {}
+    if source.suffix.lower() == '.docx':
+        from .paperpile import extract_field_map
+        pp_field_map = extract_field_map(source)
 
     if bib is None:
         msg = (
@@ -218,18 +229,35 @@ def convert(
         _sanitize_unicode(output)
 
     if suffix == ".tex" and bib is not None:
+        # Build citekey map from field data (already extracted above as pp_field_map).
+        # extract_citation_map decodes the JSON to get citekeys; re-use the same
+        # DOCX read but via the dedicated function to keep concerns separate.
         from .paperpile import extract_citation_map
         from .cite_revive import revive
-        pp_map = extract_citation_map(source) if source.suffix.lower() == '.docx' else {}
+        pp_cite_map = extract_citation_map(source) if source.suffix.lower() == '.docx' else {}
         n_replaced, unmatched = revive(output, bib, bib_encoding=bib_encoding,
-                                       paperpile_map=pp_map or None)
+                                       paperpile_map=pp_cite_map or None)
         if n_replaced > 0:
-            method = "Paperpile field data" if pp_map else "author/year matching"
+            method = "Paperpile field data" if pp_cite_map else "author/year matching"
             warnings.append(
                 f"Revived {n_replaced} citation(s) as \\citep{{}} commands ({method}). "
                 "Add \\bibliographystyle{} to your preamble to match the target journal."
             )
         for u in unmatched:
             warnings.append(f"Could not match to a BibTeX key — check manually: '{u}'")
+
+    if suffix == ".docx" and preserve_citations and pp_field_map:
+        from .paperpile import inject_paperpile_fields
+        n_injected = inject_paperpile_fields(output, pp_field_map)
+        if n_injected > 0:
+            warnings.append(
+                f"Re-injected {n_injected} Paperpile citation field(s) — "
+                "citations are live in Word. Refresh fields (Ctrl+A → F9) after opening."
+            )
+        else:
+            warnings.append(
+                "Preserve citations was enabled but no Paperpile fields were matched "
+                "in the output — citations remain as plain text."
+            )
 
     return warnings

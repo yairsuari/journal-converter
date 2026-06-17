@@ -140,6 +140,23 @@ fmt_choice = st.selectbox("Output format", fmt_options,
                            help="LaTeX output keeps citations alive as \\citep{} commands "
                                 "if you supply a BibTeX file")
 
+# ── Citation preservation ─────────────────────────────────────────────────────
+
+_source_is_docx = source_file is not None and source_file.name.lower().endswith(".docx")
+_output_is_docx = (
+    fmt_choice == "Word (.docx)" or
+    (fmt_choice == "Same as source" and _source_is_docx)
+)
+preserve_citations = False
+if _source_is_docx and _output_is_docx:
+    preserve_citations = st.checkbox(
+        "Preserve citations (Paperpile)",
+        value=True,
+        help="Re-inject live Paperpile ADDIN field codes that Pandoc discards, "
+             "so citations remain interactive in the converted Word document. "
+             "Currently only Paperpile citations are supported.",
+    )
+
 # ── Conversion ────────────────────────────────────────────────────────────────
 
 ready = source_file is not None and from_idx != to_idx
@@ -181,7 +198,8 @@ if st.button("Convert", type="primary", disabled=not ready):
 
         try:
             with st.spinner("Converting…"):
-                warnings = convert(source_path, target_config, output_path, bib=bib_path)
+                warnings = convert(source_path, target_config, output_path,
+                                   bib=bib_path, preserve_citations=preserve_citations)
 
             st.success("Conversion complete.")
 
@@ -236,7 +254,13 @@ if st.button("Convert", type="primary", disabled=not ready):
         except RuntimeError as exc:
             st.error(f"Conversion failed:\n\n{exc}")
 
-# ── Disclaimer ────────────────────────────────────────────────────────────────
+# ── Footer ───────────────────────────────────────────────────────────────────
 
 st.divider()
+st.caption(
+    "**Citation support** — Citation field preservation currently supports "
+    "**Paperpile** only. Zotero, Mendeley, and other reference managers are not yet "
+    "supported. [Request support or report a bug]"
+    "(https://github.com/yairsuari/journal-converter/issues)"
+)
 st.caption(f"**Disclaimer** — {DISCLAIMER}")
