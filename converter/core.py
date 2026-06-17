@@ -218,11 +218,15 @@ def convert(
         _sanitize_unicode(output)
 
     if suffix == ".tex" and bib is not None:
+        from .paperpile import extract_citation_map
         from .cite_revive import revive
-        n_replaced, unmatched = revive(output, bib, bib_encoding=bib_encoding)
+        pp_map = extract_citation_map(source) if source.suffix.lower() == '.docx' else {}
+        n_replaced, unmatched = revive(output, bib, bib_encoding=bib_encoding,
+                                       paperpile_map=pp_map or None)
         if n_replaced > 0:
+            method = "Paperpile field data" if pp_map else "author/year matching"
             warnings.append(
-                f"Revived {n_replaced} citation(s) as \\citep{{}} commands. "
+                f"Revived {n_replaced} citation(s) as \\citep{{}} commands ({method}). "
                 "Add \\bibliographystyle{} to your preamble to match the target journal."
             )
         for u in unmatched:

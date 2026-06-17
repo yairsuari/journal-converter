@@ -1,9 +1,13 @@
 """
 Post-process a pandoc-generated .tex file to replace rendered (Author, Year)
-citations with live \\citep{key} commands, using the source .bib file as the key map.
+citations with live \\citep{key} commands.
 
-Pandoc cannot read Paperpile's Word field codes, so citations arrive as plain
-author-year text.  This module maps them back to BibTeX keys.
+Two strategies, tried in order:
+1. Paperpile map (preferred) — a {rendered_text: [citekey]} dict extracted directly
+   from the source .docx field codes.  Exact, reliable, no ambiguity.
+2. BibTeX fuzzy match — parse author + year from the rendered text and look them up
+   in the .bib file.  Used as a fallback when no Paperpile map is available or a
+   citation wasn't found in the map.
 """
 import re
 from pathlib import Path
@@ -88,12 +92,18 @@ def _resolve_part(part: str, lookup: dict) -> str | None:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def revive(tex_path: Path, bib_path: Path,
-           bib_encoding: str = "utf-8") -> tuple[int, list[str]]:
+           bib_encoding: str = "utf-8",
+           paperpile_map: dict[str, list[str]] | None = None,
+           ) -> tuple[int, list[str]]:
     """
     Replace rendered (Author, Year) citations in tex_path with \\citep{key}.
     Appends \\bibliography{bib_stem} if at least one citation was replaced.
     Returns (n_replaced, unmatched_citation_strings).
     Modifies tex_path in place.
+
+    paperpile_map: optional dict from paperpile.extract_citation_map().  When
+    provided, matching citations are resolved directly without touching the .bib
+    file.  Unmatched citations fall back to fuzzy BibTeX lookup.
     """
     try:
         bib_text = bib_path.read_text(encoding=bib_encoding)
@@ -107,15 +117,24 @@ def revive(tex_path: Path, bib_path: Path,
 
     def replace_block(m: re.Match) -> str:
         nonlocal replaced
+        full_match = m.group(0)
+
+        # Fast path: direct lookup from Paperpile field data
+        if paperpile_map:
+            keys = paperpile_map.get(_normalize(full_match))
+            if keys:
+                replaced += len(keys)
+                return r'\citep{' + ', '.join(keys) + '}'
+
+        # Fallback: fuzzy author/year matching against the .bib file
         raw_content = _normalize(m.group(1))
         parts = [p.strip() for p in raw_content.split(';')]
-        keys: list[str] = []
-
+        keys = []
         for part in parts:
             key = _resolve_part(part, lookup)
             if key is None:
                 unmatched.append(_normalize(part))
-                return m.group(0)  # leave whole block unchanged if any part fails
+                return full_match  # leave whole block unchanged if any part fails
             keys.append(key)
 
         replaced += len(keys)
